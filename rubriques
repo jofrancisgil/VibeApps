@@ -1,0 +1,502 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Trash2, Wand2, Copy, Printer, Check, Info, ArrowLeft, Loader2, Sparkles, User, GraduationCap, Grid, Activity } from 'lucide-react';
+
+// Deixem l'API Key buida perquè l'entorn l'injecti automàticament
+const apiKey = ""; 
+
+// --- COMPONENT: GRÀFIC RADIAL (SVG) ---
+const RadialRubric = ({ data, showLabels = true }) => {
+  const size = 600;
+  const center = size / 2;
+  const maxRadius = 240;
+  const numCriteria = data.length;
+  // Evitem dividir per zero si no hi ha dades
+  const anglePerCriterion = numCriteria > 0 ? 360 / numCriteria : 0;
+  
+  const getCoordinates = (angleInDegrees, distance) => {
+    const angleInRadians = (angleInDegrees - 90) * (Math.PI / 180.0);
+    return {
+      x: center + distance * Math.cos(angleInRadians),
+      y: center + distance * Math.sin(angleInRadians)
+    };
+  };
+
+  const levels = [
+    { num: 1, label: 'Novell', color: '#faf5ff' },
+    { num: 2, label: 'Aprenent', color: '#f3e8ff' },
+    { num: 3, label: 'Avançat', color: '#e9d5ff' },
+    { num: 4, label: 'Expert', color: '#d8b4fe' }
+  ];
+  
+  if (!data || data.length === 0) return <div>No hi ha dades per mostrar</div>;
+
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl">
+      <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} className="max-w-[700px]">
+        
+        {/* Cercles concèntrics (nivells) */}
+        {levels.map((level, idx) => {
+          const levelRadius = (maxRadius / 4) * level.num;
+          return (
+            <circle 
+              key={`circle-${level.num}`}
+              cx={center} 
+              cy={center} 
+              r={levelRadius} 
+              fill={level.color}
+              stroke="#9333ea" 
+              strokeWidth="1.5" 
+              fillOpacity="0.5"
+            />
+          );
+        })}
+
+        {/* Línies divisòries i etiquetes */}
+        {data.map((criterion, i) => {
+          // Angle on va l'etiqueta (centre del sector)
+          const angle = anglePerCriterion * i;
+          
+          // Angle on va la línia separadora (entre dos sectors: sumem la meitat del sector)
+          const separatorAngle = angle + (anglePerCriterion / 2);
+
+          const endPoint = getCoordinates(separatorAngle, maxRadius);
+          const labelPoint = getCoordinates(angle, maxRadius + 35);
+          
+          let textAnchor = "middle";
+          // Ajustem l'ancoratge del text basant-nos en l'angle del text, no de la línia
+          if (angle > 15 && angle < 165) textAnchor = "start";
+          if (angle > 195 && angle < 345) textAnchor = "end";
+
+          return (
+            <g key={`axis-${i}`}>
+              {/* Línia separadora desplaçada */}
+              <line 
+                x1={center} 
+                y1={center} 
+                x2={endPoint.x} 
+                y2={endPoint.y} 
+                stroke="#7c3aed" 
+                strokeWidth="2.5" 
+              />
+              {showLabels && (
+                <text 
+                  x={labelPoint.x} 
+                  y={labelPoint.y} 
+                  textAnchor={textAnchor} 
+                  dominantBaseline="middle"
+                  fontSize="12" 
+                  fontWeight="bold" 
+                  fill="#1f2937"
+                  className="uppercase tracking-wide"
+                >
+                  {criterion.titol.length > 20 ? criterion.titol.substring(0, 18) + '...' : criterion.titol}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Etiquetes dels nivells (números) */}
+        {levels.map((level) => {
+          const levelRadius = (maxRadius / 4) * level.num;
+          // Ajustem una mica la posició de les etiquetes de nivell perquè no xoquin amb les línies si cauen a prop
+          const labelPos = getCoordinates(0, levelRadius - 15); 
+          return (
+            <text 
+              key={`level-label-${level.num}`}
+              x={center} 
+              y={center - levelRadius + 15} 
+              fontSize="10" 
+              fill="#6b21a8" 
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              {level.label}
+            </text>
+          );
+        })}
+
+        <circle cx={center} cy={center} r="4" fill="#7c3aed" />
+      </svg>
+      
+      <div className="mt-6 text-center text-sm text-gray-500 italic">
+        <p className="mb-3">Visualització per sectors competencials.</p>
+        <div className="flex flex-wrap gap-4 justify-center text-xs font-semibold text-gray-700">
+          {levels.map(level => (
+            <span key={level.num} className="flex items-center gap-2">
+              <span 
+                className="w-5 h-5 rounded-full border-2 border-purple-600 flex items-center justify-center text-[10px] font-bold"
+                style={{ backgroundColor: level.color }}
+              >
+                {level.num}
+              </span>
+              {level.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  const [etapa, setEtapa] = useState('');
+  const [curs, setCurs] = useState('');
+  const [materia, setMateria] = useState('');
+  const [descripcio, setDescripcio] = useState('');
+  
+  const [numCriteris, setNumCriteris] = useState(5);
+  const [versio, setVersio] = useState('docent');
+  const [viewMode, setViewMode] = useState('table');
+  
+  const [loading, setLoading] = useState(false);
+  const [rubricData, setRubricData] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const rubricRef = useRef(null);
+
+  const cursosPerEtapa = {
+    'infantil': ['i3', 'i4', 'i5'],
+    'primaria': ['1r de Primària', '2n de Primària', '3r de Primària', '4t de Primària', '5è de Primària', '6è de Primària'],
+    'eso': ['1r ESO', '2n ESO', '3r ESO', '4t ESO'],
+    'batxillerat': ['1r Batxillerat', '2n Batxillerat']
+  };
+
+  useEffect(() => { setCurs(''); }, [etapa]);
+
+  const callGeminiApi = async (prompt) => {
+    try {
+      // Ús del model 2.5 Flash Preview i configuració JSON
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            responseMimeType: "application/json",
+            temperature: 0.7 
+          } 
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Error API: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!textResult) throw new Error("No s'ha rebut contingut vàlid de la IA.");
+      
+      return textResult;
+    } catch (err) {
+      console.error("Error API:", err);
+      throw err;
+    }
+  };
+
+  const generateRubric = async () => {
+    if (!etapa || !curs || !materia || !descripcio) {
+      setError("Si us plau, omple tots els camps abans de generar.");
+      return;
+    }
+    setError('');
+    setLoading(true);
+    setRubricData(null);
+
+    const instruccionsTo = versio === 'alumne' 
+      ? `Llenguatge en primera persona ("Jo puc..."), motivador i molt senzill, adaptat per a un alumne de ${curs}.`
+      : `Llenguatge tècnic, professional i pedagògicament rigorós per a docents.`;
+
+    const prompt = `
+      Ets un expert pedagog. Crea una rúbrica d'avaluació escolar.
+      
+      CONTEXT:
+      - Nivell: ${etapa.toUpperCase()} ${curs}
+      - Matèria: ${materia}
+      - Activitat/Projecte: ${descripcio}
+      - Públic objectiu: ${versio}
+      - Nombre criteris: ${numCriteris}
+
+      ESTIL:
+      ${instruccionsTo}
+
+      FORMAT DE SORTIDA:
+      Retorna NOMÉS un objecte JSON vàlid (sense markdown, sense blocs de codi) amb aquesta estructura exacta:
+      {
+        "titol": "Títol suggerent de la rúbrica",
+        "criteris": [
+          {
+            "titol": "Nom molt curt del criteri (màx 2-3 paraules)",
+            "descripcio": "Descripció clara de què s'avalua",
+            "nivells": {
+              "4": "Text nivell Expert (Excel·lent)",
+              "3": "Text nivell Avançat (Notable)",
+              "2": "Text nivell Aprenent (Satisfactori)",
+              "1": "Text nivell Novell (No assolit)"
+            }
+          }
+        ]
+      }
+      Genera exactament ${numCriteris} elements dins l'array 'criteris'.
+    `;
+
+    try {
+      const jsonStr = await callGeminiApi(prompt);
+      const parsedData = JSON.parse(jsonStr);
+      
+      if (!parsedData.criteris || !Array.isArray(parsedData.criteris)) {
+        throw new Error("El format de les dades rebudes no és correcte.");
+      }
+
+      setRubricData(parsedData);
+      setViewMode('table'); 
+    } catch (err) {
+      setError(`Error: ${err.message}. Torna-ho a provar.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    // Utilitzem un mètode no bloquejant o simplement netegem l'estat
+    setEtapa(''); setCurs(''); setMateria(''); setDescripcio('');
+    setNumCriteris(5); setVersio('docent'); setRubricData(null); setError('');
+  };
+
+  const handleCopy = () => {
+    if (!rubricData) return;
+    
+    let text = `${rubricData.titol}\n\n`;
+    rubricData.criteris.forEach(c => {
+      text += `CRITERI: ${c.titol.toUpperCase()}\n`;
+      text += `   [4] Expert: ${c.nivells['4']}\n`;
+      text += `   [3] Avançat: ${c.nivells['3']}\n`;
+      text += `   [2] Aprenent: ${c.nivells['2']}\n`;
+      text += `   [1] Novell: ${c.nivells['1']}\n\n`;
+    });
+
+    // Fallback per a entorns iframed on navigator.clipboard pot fallar
+    try {
+        navigator.clipboard.writeText(text).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    } catch (e) {
+        // Fallback simple utilitzant un textarea temporal
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans flex flex-col">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          body { background: white; color: black; }
+          .rubric-container { box-shadow: none; border: none; padding: 0; overflow: visible; }
+          .break-inside-avoid { page-break-inside: avoid; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* HEADER */}
+      <nav className="bg-white shadow-md sticky top-0 z-50 no-print">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between h-20 items-center">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Sparkles className="text-purple-600" size={24} /> 
+            <span className="text-xl font-bold text-purple-900 hidden sm:inline">Rúbriques IA</span>
+          </div>
+          <div className="text-sm font-medium bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+            v2.5 Flash
+          </div>
+        </div>
+      </nav>
+
+      <main className="flex-grow py-8 px-4">
+        <div className="max-w-5xl mx-auto">
+
+          {/* FORMULARI */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-purple-100 no-print">
+            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
+                <Wand2 className="text-purple-600" size={24}/>
+                <h2 className="text-xl font-bold text-gray-800">Configuració de la Rúbrica</h2>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center animate-pulse">
+                <Info className="mr-2 flex-shrink-0" size={20} /> {error}
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-6 mb-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Etapa Educativa</label>
+                <select value={etapa} onChange={(e) => setEtapa(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition">
+                  <option value="">Selecciona l'etapa...</option>
+                  <option value="infantil">Educació Infantil</option>
+                  <option value="primaria">Educació Primària</option>
+                  <option value="eso">Educació Secundària (ESO)</option>
+                  <option value="batxillerat">Batxillerat</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Curs</label>
+                <select value={curs} onChange={(e) => setCurs(e.target.value)} disabled={!etapa} className={`w-full p-3 border border-gray-300 rounded-lg outline-none transition ${!etapa ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200'}`}>
+                  <option value="">{etapa ? "Selecciona el curs..." : "Primer selecciona l'etapa"}</option>
+                  {etapa && cursosPerEtapa[etapa].map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Matèria / Àrea / Projecte</label>
+              <input type="text" value={materia} onChange={(e) => setMateria(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition" placeholder="Ex: Matemàtiques, Projecte de Recerca, Educació Física..." />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-bold text-gray-700">Nombre de criteris</label>
+                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">{numCriteris}</span>
+                </div>
+                <input type="range" min="3" max="8" value={numCriteris} onChange={(e) => setNumCriteris(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600" />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>3</span><span>8</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Tipus de llenguatge</label>
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button onClick={() => setVersio('docent')} className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition flex items-center justify-center gap-2 ${versio === 'docent' ? 'bg-white text-purple-700 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}><GraduationCap size={16} /> Docent</button>
+                  <button onClick={() => setVersio('alumne')} className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition flex items-center justify-center gap-2 ${versio === 'alumne' ? 'bg-white text-purple-700 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'}`}><User size={16} /> Alumne</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Descripció de l'activitat</label>
+              <textarea rows="3" value={descripcio} onChange={(e) => setDescripcio(e.target.value)} placeholder="Descriu què han de fer els alumnes (ex: Exposició oral sobre el canvi climàtic...)" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"></textarea>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-gray-100">
+              <button onClick={handleReset} className="px-4 py-3 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-2">
+                <Trash2 size={18}/> <span className="hidden sm:inline">Netejar</span>
+              </button>
+              <button onClick={generateRubric} disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition flex items-center justify-center shadow-md disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.99]">
+                {loading ? <Loader2 className="animate-spin mr-2" /> : <Wand2 className="mr-2" />} 
+                {loading ? "Generant..." : "Generar Rúbrica"}
+              </button>
+            </div>
+          </div>
+
+          {/* RESULTAT */}
+          {rubricData && !loading && (
+            <div className="animate-fade-in" ref={rubricRef}>
+              
+              {/* CAPÇALERA RESULTAT */}
+              <div className="mb-8 text-center bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                 <h2 className="text-3xl font-bold text-gray-900 mb-2">{rubricData.titol}</h2>
+                 <div className="flex justify-center gap-2 text-sm text-gray-500 font-medium">
+                    <span className="bg-gray-100 px-2 py-1 rounded">{etapa}</span>
+                    <span className="bg-gray-100 px-2 py-1 rounded">{curs}</span>
+                    <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded">{materia}</span>
+                 </div>
+              </div>
+
+              {/* CONTROLS DE VISTA (NO PRINT) */}
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 no-print sticky top-24 z-40 bg-gray-50 py-2">
+                <div className="flex bg-white p-1 rounded-lg shadow-sm border border-gray-200">
+                  <button 
+                    onClick={() => setViewMode('table')}
+                    className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${viewMode === 'table' ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    <Grid size={18} /> Taula
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('radial')}
+                    className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${viewMode === 'radial' ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    <Activity size={18} /> Gràfic
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={handleCopy} className={`px-4 py-2 rounded-lg font-bold flex items-center transition shadow-sm border ${copied ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                    {copied ? <Check size={18} className="mr-2"/> : <Copy size={18} className="mr-2"/>} {copied ? "Copiat!" : "Copiar Text"}
+                  </button>
+                  <button onClick={handlePrint} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg font-bold flex items-center transition shadow-sm">
+                    <Printer size={18} className="mr-2"/> Imprimir PDF
+                  </button>
+                </div>
+              </div>
+
+              {/* VISTA TAULA */}
+              <div className={`${viewMode === 'table' ? 'block' : 'hidden print:block'} mb-8 break-inside-avoid`}>
+                <div className="overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200 print:shadow-none print:border-none">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        <th className="bg-gray-800 p-4 text-white font-bold w-1/5 rounded-tl-xl">Criteri</th>
+                        <th className="bg-purple-600 p-4 text-white font-bold w-1/5 text-center">4 - Expert</th>
+                        <th className="bg-purple-500 p-4 text-white font-bold w-1/5 text-center">3 - Avançat</th>
+                        <th className="bg-purple-400 p-4 text-white font-bold w-1/5 text-center">2 - Aprenent</th>
+                        <th className="bg-purple-300 p-4 text-white font-bold w-1/5 text-center rounded-tr-xl">1 - Novell</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rubricData.criteris.map((c, idx) => (
+                        <tr key={idx} className="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition print:hover:bg-transparent break-inside-avoid">
+                          <td className="p-4 border-r border-gray-100 bg-gray-50 align-top">
+                            <div className="font-bold text-gray-900 text-base">{c.titol}</div>
+                            <div className="text-xs text-gray-500 mt-2 leading-relaxed">{c.descripcio}</div>
+                          </td>
+                          <td className="p-4 border-r border-gray-100 align-top text-gray-700 bg-purple-50/30 leading-relaxed">{c.nivells['4']}</td>
+                          <td className="p-4 border-r border-gray-100 align-top text-gray-700 leading-relaxed">{c.nivells['3']}</td>
+                          <td className="p-4 border-r border-gray-100 align-top text-gray-700 bg-purple-50/30 leading-relaxed">{c.nivells['2']}</td>
+                          <td className="p-4 align-top text-gray-700 leading-relaxed">{c.nivells['1']}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* VISTA RADIAL */}
+              <div className={`${viewMode === 'radial' ? 'block' : 'hidden print:block'} print:mt-8 break-inside-avoid flex justify-center`}>
+                <div className="w-full max-w-3xl">
+                    <h3 className="text-xl font-bold text-center mb-6 text-gray-800 print:text-black flex items-center justify-center gap-2">
+                        <Activity className="text-purple-600"/> Mapa de Competències
+                    </h3>
+                    <RadialRubric data={rubricData.criteris} />
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      </main>
+    </div>
+  );
+}
