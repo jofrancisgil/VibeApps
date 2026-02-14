@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Users, BookOpen, Clock, Plus, Trash2, Save, 
   AlertCircle, Check, X, ChevronRight, ChevronLeft, 
-  LayoutGrid, Download, Wand2, UserPlus, Ban, Coffee, Briefcase
+  LayoutGrid, Download, Wand2, UserPlus, Ban, Coffee, Briefcase, AlertTriangle, Globe
 } from 'lucide-react';
 
 // --- UI Components ---
@@ -43,26 +43,186 @@ const Input = ({ label, value, onChange, placeholder, type = "text", min, step, 
   </div>
 );
 
+// --- DICCIONARIO DE TRADUCCIONES ---
+const translations = {
+  es: {
+    // Header
+    appTitle: "CronosEscolar",
+    navConfig: "Config",
+    navTeachers: "Profesores",
+    navSchedule: "Horario",
+    btnSave: "Guardar",
+    btnSaveAlert: "Datos guardados correctamente en el navegador.",
+    
+    // Step 1
+    s1Title: "Paso 1: Configuración Global",
+    s1Desc: "Define las materias del centro y las franjas horarias de las clases.",
+    subjectsTitle: "Materias del Centro",
+    phSubject: "Ej. Robótica...",
+    timeTitle: "Estructura Horaria",
+    lblStart: "Inicio",
+    lblEnd: "Fin",
+    lblLabel: "Etiqueta (Opcional)",
+    phLabel: "Ej. Recreo",
+    classGeneral: "Clase General",
+    
+    // Step 2
+    s2Title: "Claustro de Profesores",
+    btnNewTeacher: "Nuevo Profesor",
+    lblWorkload: "Carga Horaria",
+    noTeachers: "No hay profesores registrados. Añade uno para empezar.",
+    
+    // Step 3
+    s3Course: "Curso:",
+    btnAutoFill: "Auto-Rellenar",
+    btnAutoFillTitle: "Intenta rellenar huecos vacíos automáticamente",
+    
+    // Modals & Actions
+    modalRemoveSlotTitle: "Eliminar Franja Horaria",
+    modalRemoveSlotMsg: "¿Estás seguro? Esta acción eliminará la franja horaria y TODAS las clases asignadas a ella en todos los cursos.",
+    modalRemoveTeacherTitle: "Eliminar Profesor",
+    modalRemoveTeacherMsg: "¿Seguro que quieres eliminar a este profesor? Se borrarán todas sus asignaciones de clases actuales.",
+    modalAutoTitle: "Auto-Generación",
+    modalAutoMsg: "Esto intentará rellenar los huecos vacíos automáticamente respetando las disponibilidades. Ahora incluirá TODAS las franjas horarias. ¿Continuar?",
+    autoCompleteMsg: "Generación completada. Se asignaron {n} clases nuevas.",
+    
+    // Teacher Modal
+    tmEditTitle: "Editar Profesor",
+    tmNewTitle: "Nuevo Profesor",
+    tmName: "Nombre",
+    phName: "Ej. Ana Martínez",
+    tmMaxLoad: "Carga Horaria Máxima Semanal",
+    phMaxLoad: "Total horas contrato",
+    tmSubjects: "Materias / Tareas",
+    tmGrades: "Cursos Asignados",
+    tmAvail: "Disponibilidad Horaria",
+    tmAvailDesc: "(Marca en ROJO las horas donde NO se puede asignar ninguna tarea)",
+    btnCancel: "Cancelar",
+    btnSaveTeacher: "Guardar Profesor",
+    
+    // Assign Modal
+    amTitle: "Programar",
+    amSubject: "Materia / Actividad",
+    amSelect: "-- Seleccionar --",
+    amMain: "Profesor Principal",
+    amSupport: "Refuerzo (Opcional)",
+    amSupportDesc: "Co-docencia",
+    amNone: "-- Ninguno --",
+    amConfirm: "Confirmar Asignación",
+    amUnknown: "Desconocido",
+    amRef: "Ref:",
+    amAssignBtn: "Asignar",
+
+    // Days (Display only)
+    "Lunes": "Lunes",
+    "Martes": "Martes",
+    "Miércoles": "Miércoles",
+    "Jueves": "Jueves",
+    "Viernes": "Viernes"
+  },
+  ca: {
+    // Header
+    appTitle: "CronosEscolar",
+    navConfig: "Config",
+    navTeachers: "Professors",
+    navSchedule: "Horari",
+    btnSave: "Desar",
+    btnSaveAlert: "Dades desades correctament al navegador.",
+    
+    // Step 1
+    s1Title: "Pas 1: Configuració Global",
+    s1Desc: "Defineix les matèries del centre i les franges horàries de les classes.",
+    subjectsTitle: "Matèries del Centre",
+    phSubject: "Ex. Robòtica...",
+    timeTitle: "Estructura Horària",
+    lblStart: "Inici",
+    lblEnd: "Fi",
+    lblLabel: "Etiqueta (Opcional)",
+    phLabel: "Ex. Esbarjo",
+    classGeneral: "Classe General",
+    
+    // Step 2
+    s2Title: "Claustre de Professors",
+    btnNewTeacher: "Nou Professor",
+    lblWorkload: "Càrrega Horària",
+    noTeachers: "No hi ha professors registrats. Afegeix-ne un per començar.",
+    
+    // Step 3
+    s3Course: "Curs:",
+    btnAutoFill: "Auto-Omplir",
+    btnAutoFillTitle: "Intenta omplir els buits automàticament",
+    
+    // Modals & Actions
+    modalRemoveSlotTitle: "Eliminar Franja Horària",
+    modalRemoveSlotMsg: "N'estàs segur? Aquesta acció eliminarà la franja i TOTES les classes assignades a ella en tots els cursos.",
+    modalRemoveTeacherTitle: "Eliminar Professor",
+    modalRemoveTeacherMsg: "Segur que vols eliminar aquest professor? S'esborraran totes les seves assignacions actuals.",
+    modalAutoTitle: "Auto-Generació",
+    modalAutoMsg: "Això intentarà omplir els buits automàticament respectant les disponibilitats. Ara inclourà TOTES les franges horàries. Vols continuar?",
+    autoCompleteMsg: "Generació completada. S'han assignat {n} classes noves.",
+    
+    // Teacher Modal
+    tmEditTitle: "Editar Professor",
+    tmNewTitle: "Nou Professor",
+    tmName: "Nom",
+    phName: "Ex. Anna Martínez",
+    tmMaxLoad: "Càrrega Horària Màxima Setmanal",
+    phMaxLoad: "Total hores contracte",
+    tmSubjects: "Matèries / Tasques",
+    tmGrades: "Cursos Assignats",
+    tmAvail: "Disponibilitat Horària",
+    tmAvailDesc: "(Marca en VERMELL les hores on NO es pot assignar cap tasca)",
+    btnCancel: "Cancel·lar",
+    btnSaveTeacher: "Desar Professor",
+    
+    // Assign Modal
+    amTitle: "Programar",
+    amSubject: "Matèria / Activitat",
+    amSelect: "-- Seleccionar --",
+    amMain: "Professor Principal",
+    amSupport: "Reforç (Opcional)",
+    amSupportDesc: "Co-docència",
+    amNone: "-- Cap --",
+    amConfirm: "Confirmar Assignació",
+    amUnknown: "Desconegut",
+    amRef: "Ref:",
+    amAssignBtn: "Assignar",
+
+    // Days (Display only)
+    "Lunes": "Dilluns",
+    "Martes": "Dimarts",
+    "Miércoles": "Dimecres",
+    "Jueves": "Dijous",
+    "Viernes": "Divendres"
+  }
+};
+
 // --- APP PRINCIPAL ---
 export default function App() {
   const [step, setStep] = useState(1);
   const [currentGrade, setCurrentGrade] = useState('1º'); 
+  const [language, setLanguage] = useState('es'); // 'es' | 'ca'
+
+  // Helper de traducción
+  const t = (key) => translations[language][key] || key;
 
   // --- DATOS INICIALES ---
   const [grades] = useState(['1º', '2º', '3º', '4º', '5º', '6º']);
-  const [subjects, setSubjects] = useState(['Matemáticas', 'Lengua', 'Inglés', 'Conocim. Medio', 'Ed. Física', 'Música', 'Plástica', 'Religión/Valores']);
+  // Nota: Los datos de usuario (Subjects, Names) no se traducen automáticamente, son contenido.
+  const [subjects, setSubjects] = useState(['Matemáticas', 'Lengua', 'Inglés', 'Conocim. Medio', 'Ed. Física', 'Música', 'Plástica', 'Religión/Valores', 'Guardia', 'Tutoría']);
   
   const [timeSlots, setTimeSlots] = useState([
     { id: 't1', start: '09:00', end: '10:00', type: 'class' },
     { id: 't2', start: '10:00', end: '11:00', type: 'class' },
-    { id: 'br1', start: '11:00', end: '11:30', type: 'break', name: 'Patio' },
+    { id: 'br1', start: '11:00', end: '11:30', type: 'class', name: 'Patio' }, 
     { id: 't3', start: '11:30', end: '12:30', type: 'class' },
     { id: 't4', start: '12:30', end: '13:30', type: 'class' },
-    { id: 'br2', start: '13:30', end: '15:00', type: 'break', name: 'Comedor' },
+    { id: 'br2', start: '13:30', end: '15:00', type: 'class', name: 'Comedor' },
     { id: 't5', start: '15:00', end: '15:45', type: 'class' },
     { id: 't6', start: '15:45', end: '16:30', type: 'class' },
   ]);
 
+  // Los días se mantienen en castellano internamente como "Keys" para no romper la persistencia de datos
   const [days] = useState(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']);
   const [teachers, setTeachers] = useState([]);
   const [schedule, setSchedule] = useState({});
@@ -70,7 +230,15 @@ export default function App() {
   // Estados Temporales / Modales
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null); 
-  const [selectedCell, setSelectedCell] = useState(null); 
+  const [selectedCell, setSelectedCell] = useState(null);
+  
+  // Estado para el modal de confirmación personalizado
+  const [confirmation, setConfirmation] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
   
   // Inputs Temporales Configuración
   const [newSubject, setNewSubject] = useState('');
@@ -83,9 +251,13 @@ export default function App() {
       try {
         const parsed = JSON.parse(savedData);
         if(parsed.subjects) setSubjects(parsed.subjects);
-        if(parsed.timeSlots) setTimeSlots(parsed.timeSlots);
+        if(parsed.timeSlots) {
+          const migratedSlots = parsed.timeSlots.map(s => ({ ...s, type: 'class' }));
+          setTimeSlots(migratedSlots);
+        }
         if(parsed.teachers) setTeachers(parsed.teachers);
         if(parsed.schedule) setSchedule(parsed.schedule);
+        // Podríamos guardar el idioma también, pero lo dejamos opcional por ahora
       } catch (e) {
         console.error("Error cargando datos", e);
       }
@@ -95,47 +267,41 @@ export default function App() {
   const saveData = () => {
     const data = JSON.stringify({ teachers, schedule, subjects, timeSlots });
     localStorage.setItem('cronosDataV3', data);
-    alert('Datos guardados correctamente en el navegador.');
+    alert(t('btnSaveAlert'));
   };
 
   // --- HELPERS CÁLCULO TIEMPO REAL ---
 
-  // Convierte "HH:MM" a horas decimales (ej. "15:30" -> 15.5)
   const timeToDecimal = (timeStr) => {
     const [h, m] = timeStr.split(':').map(Number);
     return h + (m / 60);
   };
 
-  // Calcula la duración de un slot en horas
   const getSlotDuration = (slotId) => {
     const slot = timeSlots.find(s => s.id === slotId);
-    if (!slot) return 1; // Fallback
+    if (!slot) return 1; 
     const start = timeToDecimal(slot.start);
     const end = timeToDecimal(slot.end);
     return parseFloat((end - start).toFixed(2));
   };
 
-  // Calcula carga del profesor sumando la duración real de cada clase asignada
   const getTeacherLoad = (teacherId) => {
     let totalHours = 0;
     Object.entries(schedule).forEach(([key, entry]) => {
-      // Extraemos el slotId de la clave "grade-day-slotId"
-      // Nota: slotId podría contener guiones (ej. "slot-123"), así que tomamos todo después del segundo guion
       const parts = key.split('-');
+      // grade-day-slotId (slotId puede tener guiones)
       const slotId = parts.slice(2).join('-');
       
       if (entry.mainTeacherId === teacherId || entry.supportTeacherId === teacherId) {
         totalHours += getSlotDuration(slotId);
       }
     });
-    // Redondear a 2 decimales para evitar 12.0000001
     return parseFloat(totalHours.toFixed(2));
   };
 
   const isTeacherBusyAt = (teacherId, day, slotId) => {
     const isTeachingElsewhere = Object.entries(schedule).some(([key, entry]) => {
       const parts = key.split('-');
-      // Reconstruimos day y slotId con cuidado
       const d = parts[1];
       const s = parts.slice(2).join('-');
       return d === day && s === slotId && (entry.mainTeacherId === teacherId || entry.supportTeacherId === teacherId);
@@ -150,29 +316,34 @@ export default function App() {
   const addTimeSlot = () => {
     if (newSlot.start && newSlot.end) {
       const id = `slot-${Date.now()}`;
-      const slotToAdd = { ...newSlot, id };
+      const slotToAdd = { ...newSlot, type: 'class', id };
       const updatedSlots = [...timeSlots, slotToAdd].sort((a, b) => a.start.localeCompare(b.start));
       setTimeSlots(updatedSlots);
       setNewSlot({ start: '', end: '', type: 'class', name: '' });
     }
   };
 
-  const removeTimeSlot = (id) => {
-    if(window.confirm("¿Seguro que quieres eliminar esta franja horaria? Se borrarán las clases asignadas.")) {
-      // Filtrar slots
+  const initiateRemoveTimeSlot = (id) => {
+    setConfirmation({
+      isOpen: true,
+      title: t('modalRemoveSlotTitle'),
+      message: t('modalRemoveSlotMsg'),
+      onConfirm: () => executeRemoveTimeSlot(id)
+    });
+  };
+
+  const executeRemoveTimeSlot = (id) => {
       const updatedSlots = timeSlots.filter(t => t.id !== id);
       setTimeSlots(updatedSlots);
       
-      // Limpiar horario asociado de forma robusta
       const newSchedule = { ...schedule };
       Object.keys(newSchedule).forEach(key => {
-        // La clave es grade-day-slotId. Verificamos si termina en el ID borrado.
         if (key.endsWith(`-${id}`)) {
           delete newSchedule[key];
         }
       });
       setSchedule(newSchedule);
-    }
+      setConfirmation({ isOpen: false, title: '', message: '', onConfirm: null });
   };
 
   const handleSaveTeacher = (teacherData) => {
@@ -187,8 +358,16 @@ export default function App() {
     setEditingTeacher(null);
   };
 
-  const handleDeleteTeacher = (id) => {
-    if(window.confirm("¿Eliminar este profesor y todas sus clases asignadas?")) {
+  const initiateDeleteTeacher = (id) => {
+    setConfirmation({
+      isOpen: true,
+      title: t('modalRemoveTeacherTitle'),
+      message: t('modalRemoveTeacherMsg'),
+      onConfirm: () => executeDeleteTeacher(id)
+    });
+  };
+
+  const executeDeleteTeacher = (id) => {
       setTeachers(teachers.filter(t => t.id !== id));
       const newSchedule = { ...schedule };
       Object.keys(newSchedule).forEach(key => {
@@ -197,7 +376,7 @@ export default function App() {
         }
       });
       setSchedule(newSchedule);
-    }
+      setConfirmation({ isOpen: false, title: '', message: '', onConfirm: null });
   };
 
   const assignClass = (subject, mainTeacherId, supportTeacherId) => {
@@ -217,20 +396,23 @@ export default function App() {
     setSchedule(newSchedule);
   };
 
-  // --- ALGORITMO AUTO-GENERACIÓN ---
   const autoGenerateSchedule = () => {
-    if (!window.confirm("Esto intentará rellenar los huecos vacíos automáticamente. ¿Continuar?")) return;
+    setConfirmation({
+      isOpen: true,
+      title: t('modalAutoTitle'),
+      message: t('modalAutoMsg'),
+      onConfirm: () => executeAutoGenerate()
+    });
+  };
 
+  const executeAutoGenerate = () => {
     let newSchedule = { ...schedule };
     let changesMade = 0;
     
-    // Calcular cargas actuales
     let tempTeacherLoads = {};
     teachers.forEach(t => tempTeacherLoads[t.id] = getTeacherLoad(t.id));
 
-    const slots = timeSlots.filter(s => s.type === 'class');
-
-    // Mezclar orden de procesamiento para variedad
+    const slots = timeSlots; 
     const shuffledGrades = [...grades].sort(() => Math.random() - 0.5);
     const shuffledDays = [...days].sort(() => Math.random() - 0.5);
 
@@ -238,7 +420,7 @@ export default function App() {
       shuffledDays.forEach(day => {
         slots.forEach(slot => {
           const key = `${grade}-${day}-${slot.id}`;
-          if (newSchedule[key]) return; // Ya ocupado
+          if (newSchedule[key]) return; 
 
           const duration = getSlotDuration(slot.id);
 
@@ -247,7 +429,6 @@ export default function App() {
             const isAssignedToGrade = t.assignedGrades.includes(grade);
             const isAvailable = !t.unavailable.includes(`${day}-${slot.id}`);
             
-            // Verificamos si ya da clase en OTRO curso a esta misma hora (en el nuevo horario simulado)
             const isBusyNow = Object.entries(newSchedule).some(([k, entry]) => {
               const parts = k.split('-');
               const d = parts[1];
@@ -255,11 +436,9 @@ export default function App() {
               return d === day && s === slot.id && (entry.mainTeacherId === t.id);
             });
 
-            // Usamos maxLectivas y sumamos la duración del slot actual
             return isAssignedToGrade && (currentLoad + duration) <= t.maxLectivas && isAvailable && !isBusyNow;
           });
 
-          // Elegir uno aleatorio
           if (availableTeachers.length > 0) {
             const selectedTeacher = availableTeachers[Math.floor(Math.random() * availableTeachers.length)];
             const subject = selectedTeacher.subjects[Math.floor(Math.random() * selectedTeacher.subjects.length)];
@@ -277,18 +456,45 @@ export default function App() {
     });
 
     setSchedule(newSchedule);
-    alert(`Generación completada. Se asignaron ${changesMade} clases nuevas.`);
+    setConfirmation({ isOpen: false, title: '', message: '', onConfirm: null });
+    setTimeout(() => alert(t('autoCompleteMsg').replace('{n}', changesMade)), 100);
   };
 
-  // --- COMPONENTES RENDER ---
+  // --- COMPONENTES MODALES ---
+
+  const ConfirmModal = () => {
+    if (!confirmation.isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 p-6 border border-slate-200">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">{confirmation.title}</h3>
+              <p className="text-sm text-slate-500 mt-2">{confirmation.message}</p>
+            </div>
+            <div className="flex gap-3 w-full mt-2">
+              <Button variant="secondary" className="flex-1 justify-center" onClick={() => setConfirmation({ ...confirmation, isOpen: false })}>
+                {t('btnCancel')}
+              </Button>
+              <Button variant="danger" className="flex-1 justify-center" onClick={confirmation.onConfirm}>
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const TeacherModal = () => {
     if (!isTeacherModalOpen) return null;
     
     const [tData, setTData] = useState(editingTeacher || {
       name: '', 
-      maxLectivas: 20, 
-      maxNoLectivas: 5, 
+      maxLectivas: 25, 
       subjects: [], 
       assignedGrades: [], 
       unavailable: []
@@ -315,38 +521,31 @@ export default function App() {
         <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
             <h3 className="text-xl font-bold text-slate-800">
-              {editingTeacher ? 'Editar Profesor' : 'Nuevo Profesor'}
+              {editingTeacher ? t('tmEditTitle') : t('tmNewTitle')}
             </h3>
             <button onClick={() => setIsTeacherModalOpen(false)}><X size={24} className="text-slate-400 hover:text-slate-600" /></button>
           </div>
           
           <div className="p-6 space-y-8">
             <div className="grid md:grid-cols-2 gap-6">
-              <Input label="Nombre" value={tData.name} onChange={v => setTData({...tData, name: v})} placeholder="Ej. Ana Martínez" />
+              <Input label={t('tmName')} value={tData.name} onChange={v => setTData({...tData, name: v})} placeholder={t('phName')} />
               
               <div className="flex gap-4">
                 <Input 
-                  label="H. Lectivas (Clases)" 
+                  label={t('tmMaxLoad')} 
                   type="number" 
-                  step="0.25"
+                  step="0.5"
                   value={tData.maxLectivas} 
                   onChange={v => setTData({...tData, maxLectivas: parseFloat(v) || 0})} 
                   className="bg-indigo-50/50"
-                />
-                <Input 
-                  label="H. No Lectivas (Otros)" 
-                  type="number" 
-                  step="0.25"
-                  value={tData.maxNoLectivas} 
-                  onChange={v => setTData({...tData, maxNoLectivas: parseFloat(v) || 0})} 
-                  className="bg-slate-50"
+                  placeholder={t('phMaxLoad')}
                 />
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Materias Capacitado</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('tmSubjects')}</label>
                 <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 min-h-[80px]">
                   {subjects.map(s => (
                     <button key={s} onClick={() => toggleSubject(s)}
@@ -357,7 +556,7 @@ export default function App() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Cursos Asignados</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('tmGrades')}</label>
                 <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 min-h-[80px]">
                   {grades.map(g => (
                     <button key={g} onClick={() => toggleGrade(g)}
@@ -371,15 +570,15 @@ export default function App() {
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <label className="text-sm font-semibold text-slate-700">Disponibilidad Horaria</label>
-                <span className="text-xs text-slate-400 font-normal">(Marca en ROJO las horas donde NO se puede asignar clase lectiva)</span>
+                <label className="text-sm font-semibold text-slate-700">{t('tmAvail')}</label>
+                <span className="text-xs text-slate-400 font-normal">{t('tmAvailDesc')}</span>
               </div>
               <div className="overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50">
                       <th className="p-2 border-b">Hora</th>
-                      {days.map(d => <th key={d} className="p-2 border-b">{d}</th>)}
+                      {days.map(d => <th key={d} className="p-2 border-b">{t(d)}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -388,20 +587,18 @@ export default function App() {
                         <td className="p-2 border-r bg-slate-50 font-mono text-xs text-slate-600">
                           {slot.start} - {slot.end}
                           <div className="text-[10px] text-slate-400 font-normal">{getSlotDuration(slot.id)}h</div>
+                          {slot.name && <div className="text-[10px] text-indigo-500 font-bold">{slot.name}</div>}
                         </td>
                         {days.map(day => {
                           const isUnavailable = tData.unavailable.includes(`${day}-${slot.id}`);
-                          const isBreak = slot.type === 'break';
                           return (
                             <td key={day} className="p-1 border border-slate-100 text-center">
-                              {!isBreak ? (
                                 <button 
                                   onClick={() => toggleUnavailable(day, slot.id)}
                                   className={`w-full h-8 rounded transition-colors ${isUnavailable ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
                                 >
                                   {isUnavailable ? <Ban size={16} className="mx-auto"/> : <Check size={16} className="mx-auto"/>}
                                 </button>
-                              ) : <span className="text-slate-300">-</span>}
                             </td>
                           );
                         })}
@@ -414,8 +611,8 @@ export default function App() {
           </div>
 
           <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 sticky bottom-0">
-            <Button variant="secondary" onClick={() => setIsTeacherModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => handleSaveTeacher(tData)} disabled={!tData.name}>Guardar Profesor</Button>
+            <Button variant="secondary" onClick={() => setIsTeacherModalOpen(false)}>{t('btnCancel')}</Button>
+            <Button onClick={() => handleSaveTeacher(tData)} disabled={!tData.name}>{t('btnSaveTeacher')}</Button>
           </div>
         </div>
       </div>
@@ -446,25 +643,26 @@ export default function App() {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
           <div className="p-4 border-b flex justify-between items-center bg-indigo-600 text-white rounded-t-xl">
             <div>
-              <h3 className="font-bold">Programar Clase - {grade}</h3>
-              <p className="text-xs opacity-80">{day}, {slotTime?.start} - {slotTime?.end} ({duration}h)</p>
+              <h3 className="font-bold">{t('amTitle')} - {grade}</h3>
+              <p className="text-xs opacity-80">{t(day)}, {slotTime?.start} - {slotTime?.end} ({duration}h)</p>
+              {slotTime?.name && <p className="text-xs font-bold text-indigo-200 uppercase">{slotTime.name}</p>}
             </div>
             <button onClick={() => setSelectedCell(null)} className="hover:bg-white/20 p-1 rounded"><X size={20}/></button>
           </div>
           
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Materia</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('amSubject')}</label>
               <select className="w-full p-2 border rounded-lg" value={selSubject} onChange={e => setSelSubject(e.target.value)}>
-                <option value="">-- Seleccionar --</option>
+                <option value="">{t('amSelect')}</option>
                 {subjects.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Profesor Principal</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('amMain')}</label>
               <select className="w-full p-2 border rounded-lg" value={selMain} onChange={e => setSelMain(e.target.value)} disabled={!selSubject}>
-                <option value="">-- Seleccionar --</option>
+                <option value="">{t('amSelect')}</option>
                 {availableTeachers
                   .filter(t => t.subjects.includes(selSubject))
                   .map(t => (
@@ -475,11 +673,11 @@ export default function App() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1 flex justify-between">
-                <span>Profesor de Refuerzo (Opcional)</span>
-                <span className="text-xs text-slate-400 font-normal">Co-docencia</span>
+                <span>{t('amSupport')}</span>
+                <span className="text-xs text-slate-400 font-normal">{t('amSupportDesc')}</span>
               </label>
               <select className="w-full p-2 border rounded-lg bg-slate-50" value={selSupport} onChange={e => setSelSupport(e.target.value)} disabled={!selMain}>
-                <option value="">-- Ninguno --</option>
+                <option value="">{t('amNone')}</option>
                 {supportCandidates.map(t => (
                    <option key={t.id} value={t.id}>{t.name} (Libre)</option>
                 ))}
@@ -488,7 +686,7 @@ export default function App() {
             
             <div className="pt-4">
                <Button className="w-full justify-center" disabled={!selMain || !selSubject} onClick={() => assignClass(selSubject, parseInt(selMain), selSupport ? parseInt(selSupport) : null)}>
-                 Confirmar Asignación
+                 {t('amConfirm')}
                </Button>
             </div>
           </div>
@@ -501,6 +699,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
+      <ConfirmModal />
       <TeacherModal />
       <AssignModal />
 
@@ -509,16 +708,32 @@ export default function App() {
         <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600 p-2 rounded-lg text-white"><Calendar size={20} /></div>
-            <h1 className="text-xl font-bold text-slate-800 hidden sm:block">CronosEscolar <span className="text-indigo-600 text-sm font-normal px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100">Pro</span></h1>
+            <h1 className="text-xl font-bold text-slate-800 hidden sm:block">{t('appTitle')} <span className="text-indigo-600 text-sm font-normal px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100">Pro</span></h1>
           </div>
           
           <div className="flex items-center gap-2">
-             <div className="flex bg-slate-100 p-1 rounded-lg mr-4">
-                <button onClick={() => setStep(1)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 1 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>Config</button>
-                <button onClick={() => setStep(2)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 2 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>Profesores</button>
-                <button onClick={() => setStep(3)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 3 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>Horario</button>
+             {/* Selector de Idioma */}
+             <div className="flex items-center bg-slate-100 p-1 rounded-lg mr-2 border border-slate-200">
+               <button 
+                onClick={() => setLanguage('es')}
+                className={`px-2 py-1 text-xs font-bold rounded transition-all ${language === 'es' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+               >
+                 ES
+               </button>
+               <button 
+                onClick={() => setLanguage('ca')}
+                className={`px-2 py-1 text-xs font-bold rounded transition-all ${language === 'ca' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+               >
+                 CA
+               </button>
              </div>
-             <Button variant="secondary" className="text-sm hidden md:flex" onClick={saveData}><Save size={16}/> Guardar</Button>
+
+             <div className="flex bg-slate-100 p-1 rounded-lg mr-4">
+                <button onClick={() => setStep(1)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 1 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>{t('navConfig')}</button>
+                <button onClick={() => setStep(2)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 2 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>{t('navTeachers')}</button>
+                <button onClick={() => setStep(3)} className={`px-3 py-1 text-sm rounded-md transition-all ${step === 3 ? 'bg-white shadow text-indigo-700 font-medium' : 'text-slate-500'}`}>{t('navSchedule')}</button>
+             </div>
+             <Button variant="secondary" className="text-sm hidden md:flex" onClick={saveData}><Save size={16}/> {t('btnSave')}</Button>
           </div>
         </div>
       </header>
@@ -531,8 +746,8 @@ export default function App() {
             <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex gap-3 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600"><BookOpen size={20}/></div>
               <div>
-                <h3 className="font-bold text-blue-800">Paso 1: Configuración Global</h3>
-                <p className="text-sm text-blue-600">Define las materias del centro y las franjas horarias de las clases.</p>
+                <h3 className="font-bold text-blue-800">{t('s1Title')}</h3>
+                <p className="text-sm text-blue-600">{t('s1Desc')}</p>
               </div>
             </div>
 
@@ -540,10 +755,10 @@ export default function App() {
               {/* Configuración de Materias */}
               <Card className="p-6 h-full">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                   <BookOpen size={18} className="text-indigo-600"/> Materias del Centro
+                   <BookOpen size={18} className="text-indigo-600"/> {t('subjectsTitle')}
                 </h3>
                 <div className="flex gap-2 mb-6">
-                  <Input value={newSubject} onChange={setNewSubject} placeholder="Ej. Robótica..." />
+                  <Input value={newSubject} onChange={setNewSubject} placeholder={t('phSubject')} />
                   <Button onClick={() => {
                     if(newSubject && !subjects.includes(newSubject)) {
                       setSubjects([...subjects, newSubject]);
@@ -564,29 +779,28 @@ export default function App() {
               {/* Configuración de Horarios */}
               <Card className="p-6 h-full">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                   <Clock size={18} className="text-indigo-600"/> Estructura Horaria
+                   <Clock size={18} className="text-indigo-600"/> {t('timeTitle')}
                 </h3>
                 
                 {/* Añadir nuevo tramo */}
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 grid grid-cols-12 gap-2 items-end">
                    <div className="col-span-3">
-                     <label className="text-xs font-semibold text-slate-500">Inicio</label>
+                     <label className="text-xs font-semibold text-slate-500">{t('lblStart')}</label>
                      <input type="time" value={newSlot.start} onChange={e => setNewSlot({...newSlot, start: e.target.value})} className="w-full p-2 border rounded-md text-sm"/>
                    </div>
                    <div className="col-span-3">
-                     <label className="text-xs font-semibold text-slate-500">Fin</label>
+                     <label className="text-xs font-semibold text-slate-500">{t('lblEnd')}</label>
                      <input type="time" value={newSlot.end} onChange={e => setNewSlot({...newSlot, end: e.target.value})} className="w-full p-2 border rounded-md text-sm"/>
                    </div>
                    <div className="col-span-4">
-                     <label className="text-xs font-semibold text-slate-500">Tipo</label>
-                     <select 
-                       value={newSlot.type} 
-                       onChange={e => setNewSlot({...newSlot, type: e.target.value})}
-                       className="w-full p-2 border rounded-md text-sm"
-                     >
-                       <option value="class">Clase Lectiva</option>
-                       <option value="break">Descanso/Patio</option>
-                     </select>
+                     <label className="text-xs font-semibold text-slate-500">{t('lblLabel')}</label>
+                     <input 
+                       type="text"
+                       placeholder={t('phLabel')}
+                       value={newSlot.name} 
+                       onChange={e => setNewSlot({...newSlot, name: e.target.value})}
+                       className="w-full p-2 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                     />
                    </div>
                    <div className="col-span-2">
                      <Button onClick={addTimeSlot} className="w-full justify-center" disabled={!newSlot.start || !newSlot.end}>
@@ -598,7 +812,7 @@ export default function App() {
                 {/* Lista de tramos */}
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                    {timeSlots.map((slot, idx) => (
-                     <div key={slot.id} className={`flex items-center justify-between p-3 rounded-lg border ${slot.type === 'break' ? 'bg-amber-50 border-amber-100' : 'bg-white border-slate-100'}`}>
+                     <div key={slot.id} className={`flex items-center justify-between p-3 rounded-lg border bg-white border-slate-100`}>
                         <div className="flex items-center gap-3">
                            <span className="text-xs font-bold text-slate-400 w-6">#{idx+1}</span>
                            <div>
@@ -606,13 +820,13 @@ export default function App() {
                                 {slot.start} - {slot.end}
                               </div>
                               <div className="text-xs text-slate-500 flex items-center gap-1">
-                                {slot.type === 'break' ? <Coffee size={10} className="text-amber-500"/> : <BookOpen size={10} className="text-indigo-500"/>}
-                                {slot.type === 'break' ? (slot.name || 'Descanso') : `Clase Lectiva (${getSlotDuration(slot.id)}h)`}
+                                <Clock size={10} className="text-indigo-500"/>
+                                {slot.name ? <span className="font-bold text-indigo-600">{slot.name}</span> : `${t('classGeneral')} (${getSlotDuration(slot.id)}h)`}
                               </div>
                            </div>
                         </div>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); removeTimeSlot(slot.id); }} 
+                          onClick={(e) => { e.stopPropagation(); initiateRemoveTimeSlot(slot.id); }} 
                           className="text-slate-300 hover:text-rose-500 p-2 hover:bg-rose-50 rounded-full transition-colors"
                           title="Eliminar franja"
                         >
@@ -630,50 +844,46 @@ export default function App() {
         {step === 2 && (
            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-800">Claustro de Profesores</h2>
+                <h2 className="text-2xl font-bold text-slate-800">{t('s2Title')}</h2>
                 <Button onClick={() => { setEditingTeacher(null); setIsTeacherModalOpen(true); }}>
-                  <UserPlus size={18}/> Nuevo Profesor
+                  <UserPlus size={18}/> {t('btnNewTeacher')}
                 </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {teachers.map(t => {
-                   // Usamos t.maxLectivas
-                   const load = getTeacherLoad(t.id);
-                   const isOverloaded = load > t.maxLectivas;
+                {teachers.map(tData => {
+                   // Usamos tData.maxLectivas
+                   const load = getTeacherLoad(tData.id);
+                   const isOverloaded = load > tData.maxLectivas;
                    return (
-                     <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative group">
+                     <div key={tData.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative group">
                         <div className="flex justify-between items-start mb-3">
-                           <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${t.color}`}>
-                             {t.name.charAt(0)}
+                           <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${tData.color}`}>
+                             {tData.name.charAt(0)}
                            </div>
                            <div className="flex gap-1">
-                             <button onClick={() => { setEditingTeacher(t); setIsTeacherModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded"><Users size={16}/></button>
-                             <button onClick={() => handleDeleteTeacher(t.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded"><Trash2 size={16}/></button>
+                             <button onClick={() => { setEditingTeacher(tData); setIsTeacherModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded"><Users size={16}/></button>
+                             <button onClick={() => initiateDeleteTeacher(tData.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded"><Trash2 size={16}/></button>
                            </div>
                         </div>
-                        <h4 className="font-bold text-slate-800 truncate">{t.name}</h4>
+                        <h4 className="font-bold text-slate-800 truncate">{tData.name}</h4>
                         
                         <div className="mt-2 mb-3">
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-slate-500">Lectivas</span>
-                            <span className={`font-bold ${isOverloaded ? 'text-rose-600' : 'text-slate-700'}`}>{load}/{t.maxLectivas}h</span>
+                            <span className="text-slate-500">{t('lblWorkload')}</span>
+                            <span className={`font-bold ${isOverloaded ? 'text-rose-600' : 'text-slate-700'}`}>{load}/{tData.maxLectivas}h</span>
                           </div>
                           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-2">
-                             <div style={{width: `${Math.min((load/t.maxLectivas)*100, 100)}%`}} className={`h-full ${isOverloaded ? 'bg-rose-500' : 'bg-indigo-500'}`}></div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs bg-slate-50 p-1.5 rounded">
-                             <span className="text-slate-500 flex items-center gap-1"><Briefcase size={10}/> No Lectivas</span>
-                             <span className="font-mono text-slate-700">{t.maxNoLectivas}h</span>
+                             <div style={{width: `${Math.min((load/tData.maxLectivas)*100, 100)}%`}} className={`h-full ${isOverloaded ? 'bg-rose-500' : 'bg-indigo-500'}`}></div>
                           </div>
                         </div>
 
                         <div className="space-y-2">
                            <div className="flex flex-wrap gap-1">
-                             {t.assignedGrades.map(g => <span key={g} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">{g}</span>)}
+                             {tData.assignedGrades.map(g => <span key={g} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">{g}</span>)}
                            </div>
                            <div className="text-xs text-slate-400 truncate">
-                             {t.subjects.join(', ')}
+                             {tData.subjects.join(', ')}
                            </div>
                         </div>
                      </div>
@@ -682,7 +892,7 @@ export default function App() {
                 {teachers.length === 0 && (
                   <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-slate-400">
                     <Users size={48} className="mx-auto mb-4 opacity-50"/>
-                    <p>No hay profesores registrados. Añade uno para empezar.</p>
+                    <p>{t('noTeachers')}</p>
                   </div>
                 )}
               </div>
@@ -696,7 +906,7 @@ export default function App() {
             {/* Toolbar del Horario */}
             <div className="flex flex-wrap gap-4 justify-between items-center mb-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-                  <span className="text-xs font-bold text-slate-400 uppercase mr-2">Curso:</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase mr-2">{t('s3Course')}</span>
                   {grades.map(g => (
                     <button 
                       key={g} 
@@ -709,8 +919,8 @@ export default function App() {
                </div>
 
                <div className="flex gap-2">
-                  <Button variant="magic" onClick={autoGenerateSchedule} disabled={teachers.length === 0} title="Intenta rellenar huecos vacíos automáticamente">
-                    <Wand2 size={18} className="animate-pulse"/> <span className="hidden md:inline">Auto-Rellenar</span>
+                  <Button variant="magic" onClick={autoGenerateSchedule} disabled={teachers.length === 0} title={t('btnAutoFillTitle')}>
+                    <Wand2 size={18} className="animate-pulse"/> <span className="hidden md:inline">{t('btnAutoFill')}</span>
                   </Button>
                   <Button variant="secondary" onClick={() => window.print()}><Download size={18}/></Button>
                </div>
@@ -722,22 +932,18 @@ export default function App() {
                  <thead className="sticky top-0 z-20 bg-white shadow-sm">
                    <tr>
                      <th className="p-4 bg-slate-50 border-b border-r border-slate-200 text-slate-500 w-24">Hora</th>
-                     {days.map(d => <th key={d} className="p-4 bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold text-lg">{d}</th>)}
+                     {days.map(d => <th key={d} className="p-4 bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold text-lg">{t(d)}</th>)}
                    </tr>
                  </thead>
                  <tbody>
                    {timeSlots.map(slot => (
-                     <tr key={slot.id} className={slot.type === 'break' ? 'bg-slate-50/50' : ''}>
+                     <tr key={slot.id}>
                        <td className="p-3 border-r border-b border-slate-200 text-center sticky left-0 bg-white z-10">
                          <div className="font-mono text-sm font-bold text-slate-700">{slot.start}</div>
                          <div className="text-xs text-slate-400">{slot.end}</div>
-                         {slot.type === 'break' && <span className="text-[10px] text-orange-500 font-bold uppercase mt-1 block tracking-wider">{slot.name || (slot.id.includes('1') ? 'Patio' : 'Comedor')}</span>}
+                         {slot.name && <span className="text-[10px] text-orange-500 font-bold uppercase mt-1 block tracking-wider">{slot.name}</span>}
                        </td>
                        {days.map(day => {
-                         if (slot.type === 'break') {
-                            return <td key={`${day}-${slot.id}`} className="bg-slate-100/50 border-b border-slate-200"></td>;
-                         }
-
                          const key = `${currentGrade}-${day}-${slot.id}`;
                          const entry = schedule[key];
                          const mainTeacher = entry ? teachers.find(t => t.id === entry.mainTeacherId) : null;
@@ -755,12 +961,12 @@ export default function App() {
                                    {/* Main Teacher */}
                                    <div className="mt-auto space-y-1">
                                       <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-white/60 p-1 rounded">
-                                        <Users size={12}/> {mainTeacher ? mainTeacher.name : 'Desconocido'}
+                                        <Users size={12}/> {mainTeacher ? mainTeacher.name : t('amUnknown')}
                                       </div>
                                       {/* Support Teacher */}
                                       {supportTeacher && (
                                         <div className="flex items-center gap-1.5 text-[10px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 p-1 rounded">
-                                          <Plus size={10}/> Ref: {supportTeacher.name}
+                                          <Plus size={10}/> {t('amRef')} {supportTeacher.name}
                                         </div>
                                       )}
                                    </div>
@@ -771,7 +977,7 @@ export default function App() {
                                   className="w-full h-full rounded-lg border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300 hover:text-indigo-500 hover:border-indigo-200 hover:bg-indigo-50 transition-all gap-2"
                                 >
                                   <Plus size={24}/>
-                                  <span className="text-xs font-medium opacity-0 group-hover:opacity-100">Asignar</span>
+                                  <span className="text-xs font-medium opacity-0 group-hover:opacity-100">{t('amAssignBtn')}</span>
                                 </button>
                               )}
                            </td>
